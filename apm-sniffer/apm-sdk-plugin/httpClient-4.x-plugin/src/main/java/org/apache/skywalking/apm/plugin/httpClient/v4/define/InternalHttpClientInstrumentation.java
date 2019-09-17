@@ -28,9 +28,9 @@ import org.apache.skywalking.apm.agent.core.plugin.match.ClassMatch;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 /**
- * {@link AbstractHttpClientInstrumentation} presents that skywalking intercepts {@link
- * org.apache.http.impl.client.InternalHttpClient#doExecute(org.apache.http.HttpHost, org.apache.http.HttpRequest,
- * org.apache.http.protocol.HttpContext)} by using {@link HttpClientInstrumentation#INTERCEPT_CLASS}.
+ * {@link AbstractHttpClientInstrumentation} presents that skywalking intercepts
+ * InternalHttpClient#doExecute
+ * by using {@link HttpClientInstrumentation#INTERCEPT_CLASS}.
  *
  * @author zhangxin
  */
@@ -44,7 +44,7 @@ public class InternalHttpClientInstrumentation extends HttpClientInstrumentation
     }
 
     @Override
-    protected InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
+    public InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
         return new InstanceMethodsInterceptPoint[] {
             new InstanceMethodsInterceptPoint() {
                 @Override

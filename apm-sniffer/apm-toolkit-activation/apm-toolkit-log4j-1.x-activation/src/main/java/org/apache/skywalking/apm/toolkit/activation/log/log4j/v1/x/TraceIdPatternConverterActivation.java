@@ -38,19 +38,24 @@ import static org.apache.skywalking.apm.agent.core.plugin.match.NameMatch.byName
  * @author wusheng
  */
 public class TraceIdPatternConverterActivation extends ClassInstanceMethodsEnhancePluginDefine {
+
+    public static final String ENHANCE_CLASS = "org.apache.skywalking.apm.toolkit.log.log4j.v1.x.TraceIdPatternConverter";
+    public static final String INTERCEPT_CLASS = "org.apache.skywalking.apm.toolkit.activation.log.log4j.v1.x.PrintTraceIdInterceptor";
+    public static final String ENHANCE_METHOD = "convert";
+
     /**
      * @return the target class, which needs active.
      */
     @Override
     protected ClassMatch enhanceClass() {
-        return byName("TraceIdPatternConverter");
+        return byName(ENHANCE_CLASS);
     }
 
     /**
      * @return null, no need to intercept constructor of enhance class.
      */
     @Override
-    protected ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
+    public ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
         return null;
     }
 
@@ -59,17 +64,17 @@ public class TraceIdPatternConverterActivation extends ClassInstanceMethodsEnhan
      * interceptors.
      */
     @Override
-    protected InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
+    public InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
         return new InstanceMethodsInterceptPoint[] {
             new InstanceMethodsInterceptPoint() {
                 @Override
                 public ElementMatcher<MethodDescription> getMethodsMatcher() {
-                    return named("convert");
+                    return named(ENHANCE_METHOD);
                 }
 
                 @Override
                 public String getMethodsInterceptor() {
-                    return "PrintTraceIdInterceptor";
+                    return INTERCEPT_CLASS;
                 }
 
                 @Override public boolean isOverrideArgs() {

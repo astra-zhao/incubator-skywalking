@@ -31,7 +31,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * {@link AbstractConnectionInstrumentation} define how to enhance the following methods that the class which extend
- * {@link java.sql.Connection}. <br/>
+ * {@link java.sql.Connection}. 
  *
  * 1. Enhance <code>prepareStatement</code> by <code>org.apache.skywalking.apm.plugin.jdbc.define.JDBCPrepareStatementInterceptor</code>
  * 3. Enhance <code>prepareCall</code> by <code>org.apache.skywalking.apm.plugin.jdbc.define.JDBCPrepareCallInterceptor</code>
@@ -42,11 +42,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
  */
 public abstract class AbstractConnectionInstrumentation extends ClassInstanceMethodsEnhancePluginDefine {
 
-    @Override protected ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
+    @Override public ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
         return new ConstructorInterceptPoint[0];
     }
 
-    @Override protected InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
+    @Override public InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
         return new InstanceMethodsInterceptPoint[] {
             new InstanceMethodsInterceptPoint() {
                 @Override public ElementMatcher<MethodDescription> getMethodsMatcher() {

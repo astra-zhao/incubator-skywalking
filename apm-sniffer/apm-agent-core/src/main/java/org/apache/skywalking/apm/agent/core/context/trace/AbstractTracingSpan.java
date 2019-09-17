@@ -18,14 +18,13 @@
 
 package org.apache.skywalking.apm.agent.core.context.trace;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import org.apache.skywalking.apm.agent.core.context.util.KeyValuePair;
-import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer;
+import java.util.*;
+import org.apache.skywalking.apm.agent.core.context.*;
+import org.apache.skywalking.apm.agent.core.context.tag.*;
+import org.apache.skywalking.apm.agent.core.context.util.*;
 import org.apache.skywalking.apm.agent.core.dictionary.DictionaryUtil;
-import org.apache.skywalking.apm.network.proto.SpanObject;
-import org.apache.skywalking.apm.network.proto.SpanType;
+import org.apache.skywalking.apm.network.language.agent.SpanType;
+import org.apache.skywalking.apm.network.language.agent.v2.SpanObjectV2;
 import org.apache.skywalking.apm.network.trace.component.Component;
 
 /**
@@ -37,10 +36,20 @@ import org.apache.skywalking.apm.network.trace.component.Component;
 public abstract class AbstractTracingSpan implements AbstractSpan {
     protected int spanId;
     protected int parentSpanId;
-    protected List<KeyValuePair> tags;
+    protected List<TagValuePair> tags;
     protected String operationName;
     protected int operationId;
     protected SpanLayer layer;
+    /**
+     * The span has been tagged in async mode, required async stop to finish.
+     */
+    protected volatile boolean isInAsyncMode = false;
+    /**
+     * The flag represents whether the span has been async stopped
+     */
+    private volatile boolean isAsyncStopped = false;
+    protected volatile AbstractTracerContext context;
+
     /**
      * The start time of this Span.
      */
@@ -59,7 +68,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
     protected String componentName;
 
     /**
-     * Log is a concept from OpenTracing spec. <p> {@see https://github.com/opentracing/specification/blob/master/specification.md#log-structured-data}
+     * Log is a concept from OpenTracing spec. https://github.com/opentracing/specification/blob/master/specification.md#log-structured-data
      */
     protected List<LogDataEntity> logs;
 
@@ -90,11 +99,27 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * @return this Span instance, for chaining
      */
     @Override
+    @Deprecated
     public AbstractTracingSpan tag(String key, String value) {
+        return tag(new StringTag(key), value);
+    }
+
+    @Override
+    public AbstractTracingSpan tag(AbstractTag tag, String value) {
         if (tags == null) {
-            tags = new LinkedList<KeyValuePair>();
+            tags = new ArrayList<TagValuePair>(8);
         }
-        tags.add(new KeyValuePair(key, value));
+
+        if (tag.isCanOverwrite()) {
+            for (TagValuePair pair : tags) {
+                if (pair.sameWith(tag)) {
+                    pair.setValue(value);
+                    return this;
+                }
+            }
+        }
+
+        tags.add(new TagValuePair(tag, value));
         return this;
     }
 
@@ -239,8 +264,14 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         return this;
     }
 
-    public SpanObject.Builder transform() {
-        SpanObject.Builder spanBuilder = SpanObject.newBuilder();
+    @Override
+    public AbstractSpan start(long startTime) {
+        this.startTime = startTime;
+        return this;
+    }
+
+    public SpanObjectV2.Builder transform() {
+        SpanObjectV2.Builder spanBuilder = SpanObjectV2.newBuilder();
 
         spanBuilder.setSpanId(this.spanId);
         spanBuilder.setParentSpanId(parentSpanId);
@@ -270,7 +301,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         }
         spanBuilder.setIsError(errorOccurred);
         if (this.tags != null) {
-            for (KeyValuePair tag : this.tags) {
+            for (TagValuePair tag : this.tags) {
                 spanBuilder.addTags(tag.transform());
             }
         }
@@ -295,5 +326,27 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         if (!refs.contains(ref)) {
             refs.add(ref);
         }
+    }
+
+    @Override public AbstractSpan prepareForAsync() {
+        if (isInAsyncMode) {
+            throw new RuntimeException("Prepare for async repeatedly. Span is already in async mode.");
+        }
+        context = ContextManager.awaitFinishAsync(this);
+        isInAsyncMode = true;
+        return this;
+    }
+
+    @Override public AbstractSpan asyncFinish() {
+        if (!isInAsyncMode) {
+            throw new RuntimeException("Span is not in async mode, please use '#prepareForAsync' to active.");
+        }
+        if (isAsyncStopped) {
+            throw new RuntimeException("Can not do async finish for the span repeately.");
+        }
+        this.endTime = System.currentTimeMillis();
+        context.asyncStop(this);
+        isAsyncStopped = true;
+        return this;
     }
 }

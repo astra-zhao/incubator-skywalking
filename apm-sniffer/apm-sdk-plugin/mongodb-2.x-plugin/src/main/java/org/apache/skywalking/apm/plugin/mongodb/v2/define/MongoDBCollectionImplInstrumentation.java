@@ -33,14 +33,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 /**
  * {@link MongoDBCollectionImplInstrumentation} define that the MongoDB Java Driver 2.13.x-2.14.x plugin intercepts the
- * following methods in the {@link com.mongodb.DBCollectionImpl}class:
- * 1. find <br/>
- * 2. insert <br/>
- * 3. insertImpl <br/>
- * 4. update <br/>
- * 5. updateImpl <br/>
- * 6. remove <br/>
- * 7. createIndex <br/>
+ * following methods in the com.mongodb.DBCollectionImpl class:
+ * 1. find 
+ * 2. insert 
+ * 3. insertImpl 
+ * 4. update 
+ * 5. updateImpl 
+ * 6. remove 
+ * 7. createIndex 
  *
  * @author liyuntao
  */
@@ -51,7 +51,7 @@ public class MongoDBCollectionImplInstrumentation extends ClassInstanceMethodsEn
     private static final String MONGDB_METHOD_INTERCET_CLASS = "org.apache.skywalking.apm.plugin.mongodb.v2.MongoDBCollectionMethodInterceptor";
 
     @Override
-    protected ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
+    public ConstructorInterceptPoint[] getConstructorsInterceptPoints() {
         return new ConstructorInterceptPoint[] {
             new ConstructorInterceptPoint() {
                 @Override
@@ -68,7 +68,7 @@ public class MongoDBCollectionImplInstrumentation extends ClassInstanceMethodsEn
     }
 
     @Override
-    protected InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
+    public InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
         return new InstanceMethodsInterceptPoint[] {
 
             new InterceptPoint() {

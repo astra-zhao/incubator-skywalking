@@ -19,6 +19,7 @@
 
 package org.apache.skywalking.apm.agent.core.plugin;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,19 +31,21 @@ import org.apache.skywalking.apm.agent.core.plugin.bytebuddy.AbstractJunction;
 import org.apache.skywalking.apm.agent.core.plugin.match.ClassMatch;
 import org.apache.skywalking.apm.agent.core.plugin.match.IndirectMatch;
 import org.apache.skywalking.apm.agent.core.plugin.match.NameMatch;
+import org.apache.skywalking.apm.agent.core.plugin.match.ProtectiveShieldMatcher;
 
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 /**
- * The <code>PluginFinder</code> represents a finder , which assist to find the one
- * from the given {@link AbstractClassEnhancePluginDefine} list.
+ * The <code>PluginFinder</code> represents a finder , which assist to find the one from the given {@link
+ * AbstractClassEnhancePluginDefine} list.
  *
  * @author wusheng
  */
 public class PluginFinder {
     private final Map<String, LinkedList<AbstractClassEnhancePluginDefine>> nameMatchDefine = new HashMap<String, LinkedList<AbstractClassEnhancePluginDefine>>();
-    private final List<AbstractClassEnhancePluginDefine> signatureMatchDefine = new LinkedList<AbstractClassEnhancePluginDefine>();
+    private final List<AbstractClassEnhancePluginDefine> signatureMatchDefine = new ArrayList<AbstractClassEnhancePluginDefine>();
+    private final List<AbstractClassEnhancePluginDefine> bootstrapClassMatchDefine = new ArrayList<AbstractClassEnhancePluginDefine>();
 
     public PluginFinder(List<AbstractClassEnhancePluginDefine> plugins) {
         for (AbstractClassEnhancePluginDefine plugin : plugins) {
@@ -63,11 +66,14 @@ public class PluginFinder {
             } else {
                 signatureMatchDefine.add(plugin);
             }
+
+            if (plugin.isBootstrapInstrumentation()) {
+                bootstrapClassMatchDefine.add(plugin);
+            }
         }
     }
 
-    public List<AbstractClassEnhancePluginDefine> find(TypeDescription typeDescription,
-        ClassLoader classLoader) {
+    public List<AbstractClassEnhancePluginDefine> find(TypeDescription typeDescription) {
         List<AbstractClassEnhancePluginDefine> matchedPlugins = new LinkedList<AbstractClassEnhancePluginDefine>();
         String typeName = typeDescription.getTypeName();
         if (nameMatchDefine.containsKey(typeName)) {
@@ -98,6 +104,10 @@ public class PluginFinder {
                 judge = judge.or(((IndirectMatch)match).buildJunction());
             }
         }
-        return judge;
+        return new ProtectiveShieldMatcher(judge);
+    }
+
+    public List<AbstractClassEnhancePluginDefine> getBootstrapClassMatchDefine() {
+        return bootstrapClassMatchDefine;
     }
 }
